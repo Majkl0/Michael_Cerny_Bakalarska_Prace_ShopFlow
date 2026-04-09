@@ -1,0 +1,20 @@
+//WEBHOOK URL
+https://api.brevo.com/v3/smtp/email
+//HEADER
+Api-Key = {API_KEY_cenzurovano}
+Content-Type = application/json
+//BODY: RAW, JSON
+{
+   "sender": {
+      "name": "ShopFlow Bot",
+      "email": "shopflow@gmail.com"
+   },
+   "to": [
+      {
+         "email": "{user_email}",
+         "name": "Zákazník"
+      }
+   ],
+   "subject": "Váš výběr produktů🎁",
+   "htmlContent": {email_html_content}
+}
