@@ -1,0 +1,7 @@
+//WEBHOOK URL
+https://api.myshoptet.com/api/orders/{clean_order_id}?include=shippingDetails
+//HEADER
+Shoptet-Access-Token = {TOKEN_cenzurovano}
+//Capture response
+order_status = {stav_objednavky} //vrátí stav objednávky
+shipping_status = {tracking} //vrátí název dopravce a číslo pro sledování zásilky
