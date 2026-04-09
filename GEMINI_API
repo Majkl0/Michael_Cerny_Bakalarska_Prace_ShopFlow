@@ -1,0 +1,15 @@
+//WEBHOOK URL
+https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={API_KEY_cenzurovano}
+//HEADER
+Content-Type = application/json
+//Capture response
+embedding.values = {gemini_raw}
+//BODY: RAW, JSON
+{
+  "model": "models/gemini-embedding-001",
+  "content": {
+    "parts": [{
+      "text": "{keywords}"
+    }]
+  }
+}
