@@ -1,0 +1,26 @@
+// 1. Načtení dat z proměnné
+let rawData = gemini_raw; 
+
+// 2. KONTROLA: Je to text? Pokud ano, převedeme ho na JSON objekt.
+if (typeof rawData === 'string') {
+    // Odstraníme případné nadbytečné znaky, kdyby tam byly
+    try {
+        rawData = JSON.parse(rawData);
+    } catch (e) {
+        console.log("Chyba parsování: " + e.message);
+    }
+}
+
+// 3. Vytáhnutí vektoru
+// Struktura Gemini je: { "embedding": { "values": [...] } }
+if (rawData && rawData.embedding && rawData.embedding.values) {
+    
+    query_vector = rawData.embedding.values;
+    
+    // Pro jistotu log do konzole
+    console.log("✅ ÚSPĚCH! Mám vektor o délce: " + query_vector.length);
+
+} else {
+    query_vector = null;
+    console.log("❌ CHYBA: Vektor nenalezen. Data vypadají takto: " + JSON.stringify(rawData));
+}
