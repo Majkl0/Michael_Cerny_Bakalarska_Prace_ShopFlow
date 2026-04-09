@@ -1,0 +1,213 @@
+// ==========================================
+// HARD RESET & UPSELL (VŠE V JEDNOM)
+// ==========================================
+
+// 1. OKAMŽITÝ VÝPLACH PAMĚTI (Reset všech karet)
+c1_title = "---"; c1_desc = " "; c1_img = "https://placehold.co/1x1"; c1_url = "#";
+c2_title = "---"; c2_desc = " "; c2_img = "https://placehold.co/1x1"; c2_url = "#";
+c3_title = "---"; c3_desc = " "; c3_img = "https://placehold.co/1x1"; c3_url = "#";
+c4_title = "---"; c4_desc = " "; c4_img = "https://placehold.co/1x1"; c4_url = "#";
+c5_title = "---"; c5_desc = " "; c5_img = "https://placehold.co/1x1"; c5_url = "#";
+c6_title = "---"; c6_desc = " "; c6_img = "https://placehold.co/1x1"; c6_url = "#";
+valid_count = 0;
+
+// 2. POMOCNÁ FUNKCE PRO ZKRACOVÁNÍ TEXTU
+function smartTruncate(str, n) {
+    if (!str) return "";
+    let cleanStr = str.replace("Kompletní specifikace", "")
+                      .replace(new RegExp("[\\r\\n]+", "g"), " ")
+                      .trim();
+    if (cleanStr.length <= n) return cleanStr;
+    const subString = cleanStr.substr(0, n - 1);
+    let lastSpace = subString.lastIndexOf(" ");
+    return (lastSpace > 0 ? subString.substr(0, lastSpace) : subString) + "...";
+}
+
+// 3. DATOVÁ BÁZE (Vztahy pro Upsell)
+const produktyDB = {
+    "JAWA 730 TWIN": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JAWA 350 OHC": { "upsell": ["Podznačka moto - jawavysocina.cz", "Zadní kufr 30l", "Sada padacích rámů OHC", "Zadní nosič OHC", "Centrální stojan pro Jawa 350 OHC"] },
+    "JAWA 350 OHC Sport": { "upsell": ["Podznačka moto - jawavysocina.cz", "Centrální stojan pro Jawa 350 OHC"] },
+    "JAWA 300 CL forty two, limitovaná edice": { "upsell": ["Podznačka moto - jawavysocina.cz", "Sada brašen a držáků 300 CL", "Padací rám"] },
+    "JAWA 350 CL": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JAWA 350 CL 42": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JAWA 400 Geeny": { "upsell": ["Podznačka moto - jawavysocina.cz", "Zadní nosič", "Větrný štítek - čirý", "Větrný štítek - tmavý", "Boční nosiče", "Padací rám"] },
+    "JAWA 350 CL Pérák": { "upsell": ["Podznačka moto - jawavysocina.cz", "Motorový olej MOTUL", "Vzduchový filtr Jawa Pérák indický", "Padací rám", "Sada brašen a držáku Pérák"] },
+    "JAWA 350 CL Bobber": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JAWA 350 Style": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JAWA 350 Military": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JD 750 by JAWA Retro": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JAWA 350 634 Retro": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "JD 750 by JAWA Touring": { "upsell": ["Podzznaccka moto - jawavysocina.cz"] },
+    "Podznačka moto - jawavysocina.cz": { "upsell": ["Dokladové desky Jawa"] },
+    "Olejový filtr HF112": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Olejový filtr HIFLO 204": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Převodový olej MOTUL": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Motul Wash&Wax spray E9, 400 ml": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Impregnace na textil OXFORD": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Motorový olej MOTUL": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "SADA NA ČIŠTĚNÍ ŘETĚZŮ": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Dokladové desky Jawa": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Vzduchový filtr Jawa Pérák indický": { "upsell": ["Podznačka moto - jawavysocina.cz"] },
+    "Zadní kufr 30l": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Přední maska OHC": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Sada padacích rámů OHC": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Zadní nosič OHC": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Zadní nosič 300 CL": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Padací rám": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Centrální stojan pro Jawa 350 OHC": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Sada bočních nosičů OHC": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Topcase kufr Jawa 500 Adventure": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Sada brašen a držáku Pérák": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Sada brašen a držáků 300 CL": { "upsell": ["Zámek kotouče", "Podznačka moto - jawavysocina.cz"] },
+    "Sada hliníkových kufrů Jawa 500 Adventure": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Zámek kotouče": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Sada Oxford pro nafouknutí pneumatik": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Sada na nouzovou opravu pneumatik Oxford": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Reflexní šle": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Tankvak OXFORD M1R": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Interkom SMK Bluetooth, sada pro 1 přilbu": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Tričko Jawa": { "upsell": ["Dokladové desky Jawa"] },
+    "Mikina Jawa": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Pánské kožené moto rukavice CYBER GEAR MIDI, černé": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Pánské kožené moto rukavice CYBER GEAR RAY, černo-bílé": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Pánské kožené moto rukavice CYBER GEAR BULL, černé": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Adrenaline Lynx PPE": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Oxford RP-2": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Segura Mustang": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Adrenaline Vela": { "upsell": ["Impregnace na textil OXFORD"] },
+    "Oxford Hardy Wax": { "upsell": ["Impregnace na textil OXFORD"] },
+    "SMK Cooper MATT BLACK": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "Adrenaline Pyramid 2.0 PPE": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Kalhoty CYBERGEAR OXBOW modrá": { "upsell": ["Tričko Jawa", "Dokladové desky Jawa"] },
+    "Cassida Oxygen JAWA OHC, šedá": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "Cassida Oxygen JAWA OHC, červená": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "PŘILBA CASSIDA JET TECH (ČERNÁ MATNÁ/ŠEDÁ)": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "Adrenaline Meshtec Lady černá": { "upsell": ["Impregnace na textil OXFORD"] },
+    "Adrenaline Alaska lady 2.0": { "upsell": ["Impregnace na textil OXFORD"] },
+    "Adrenaline Love Ride 2.0 šedá/fluo": { "upsell": ["Impregnace na textil OXFORD"] },
+    "SMK GULLWING": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "Cassida Apex JAWA červená": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "Adrenaline Chicago 2.0 PPE": { "upsell": ["Impregnace na textil OXFORD"] },
+    "přilba Eso Jawa Panel, CASSIDA (černá perleť/antracit/stříbrná) 2025": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "přilba Eso Jawa Panel, CASSIDA (červená/stříbrná/černá) 2025": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] },
+    "přilba Eso Jawa Pérák, CASSIDA (černá perleť/zlatá) 2025": { "upsell": ["Motul Wash&Wax spray E9", "400 ml"] }
+};
+
+// 4. DETAIILY VŠECH PRODUKTŮ
+const vsechnyProdukty = {
+    "JAWA 350 OHC": { "cena": "84 700 Kč", "link": "https://www.jawavysocina.cz/jawa-350-ohc2", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_4_slider.jpeg", "popis": "Tradiční motocykl JAWA 350 OHC splňuje normu EURO V a je vybaven ABS." },
+    "JAWA 350 OHC Sport": { "cena": "89 900 Kč", "link": "https://www.jawavysocina.cz/jawa-350-ohc-sport2", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_5_30539330_mDMB2022_Jawa350OHC-Sport-red-5862.jpg", "popis": "Sportovní verze s úpravou zadní vidlice a LED světlem." },
+    "JAWA 300 CL forty two, limitovaná edice": { "cena": "99 900 Kč", "link": "https://www.jawavysocina.cz/jawa-300-cl-forty-two2", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_2_30539051_mDMB2022_Jawa-42-blue-0485.jpg", "popis": "Limitovaná edice v počtu 105 ks s moderním motorem DOHC." },
+    "JAWA 350 CL": { "cena": "129 700 Kč", "link": "https://www.jawavysocina.cz/jawa-350-cl", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_100_mDMB2025_newJawa-350-CL-2398.webp", "popis": "Design inspirovaný érou slavných Kývaček." },
+    "JAWA 350 CL 42": { "cena": "113 300 Kč", "link": "https://www.jawavysocina.cz/jawa-350-cl-42", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_101_JAWA-42-MK2-2037.webp", "popis": "Sportovněji vyhlížející motocykl JAWA navazující na řadu Californian." },
+    "JAWA 400 Geeny": { "cena": "118 700 Kč", "link": "https://www.jawavysocina.cz/jawa-400-geeny", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_75_mDMB2024_JawaGeeny-1263.webp", "popis": "Moderní design s výkonným řadovým dvouválcem 400 ccm." },
+    "JAWA 350 CL Pérák": { "cena": "139 700 Kč", "link": "https://www.jawavysocina.cz/jawa-350-cl-perak", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_3_34952447_mDMB2022_Jawa350CL-Perak_EU5-9899.jpg", "popis": "Kapalinou chlazený jednoválec DOHC o objemu 334 ccm." },
+    "JAWA 350 CL Bobber": { "cena": "144 880 Kč", "link": "https://www.jawavysocina.cz/jawa-350-cl-bobber", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_64_mDMB2024_Jawa-42-Bobber-1203.webp", "popis": "Moderní design navazující na úspěšný model Pérák." },
+    "JAWA 350 Style": { "cena": "160 000 Kč", "link": "https://www.jawavysocina.cz/jawa-350-style2", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_8_1-JAWA-350-Style_1.jpg", "popis": "Klasický dvoutaktní model ve stylovém provedení." },
+    "JAWA 350 Military": { "cena": "160 000 Kč", "link": "https://www.jawavysocina.cz/jawa-350-military", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_9_1-JAWA-350-Military_1.jpg", "popis": "Vojenské provedení klasické JAWY 350." },
+    "JD 750 by JAWA Retro": { "cena": "169 900 Kč", "link": "https://www.jawavysocina.cz/jd-750-by-jawa-retro2", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_87_20250605102333-IMG_6247_JPG_resize_500x333__type_jpg__1.webp", "popis": "Retro model JD 750 s kořeny JAWA." },
+    "JAWA 350 634 Retro": { "cena": "112 100 Kč", "link": "https://www.jawavysocina.cz/jawa-350-634-retro2", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_10_30539694_60-JAWA-350-typ-6401R-2013.jpg", "popis": "Odkaz na legendární model 634 v moderním provedení." },
+    "JD 750 by JAWA Touring": { "cena": "239 900 Kč", "link": "https://www.jawavysocina.cz/jd-750-by-jawa-touring", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_85_20250605102340-IMG_6344_JPG_resize_500x333__type_jpg_.webp", "popis": "Cestovní motocykl se silným motorem pro dálkové trasy." },
+    "Podznačka moto - jawavysocina.cz": { "cena": "99 Kč", "link": "https://www.jawavysocina.cz/podznacka-moto-jawavysocina-cz", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_52_8f5c00cc-b07e-4cf3-b8ff-7a1cbf663037.jpg", "popis": "Plastová podložka pod SPZ s reklamním nápisem." },
+    "Olejový filtr HF112": { "cena": "260 Kč", "link": "https://www.jawavysocina.cz/olejovy-filtr-hf112", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_103_image1.webp", "popis": "Olejový filtr pro motocykly JAWA 350 OHC." },
+    "Olejový filtr HIFLO 204": { "cena": "260 Kč", "link": "https://www.jawavysocina.cz/olejovy-filtr-hiflo", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_106_image0.webp", "popis": "Kvalitní olejový filtr Hiflo Filtro." },
+    "Převodový olej MOTUL": { "cena": "275 Kč", "link": "https://www.jawavysocina.cz/prevodovy-olej-motul", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_104_image2.webp", "popis": "Kvalitní olej pro převodovky motocyklů." },
+    "Motul Wash&Wax spray E9, 400 ml": { "cena": "342 Kč", "link": "https://www.jawavysocina.cz/motul-wash-wax-spray-e9-400-ml", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_105_image5.webp", "popis": "Čisticí sprej na suché čištění motocyklu s ochranným voskem." },
+    "Impregnace na textil OXFORD": { "cena": "355 Kč", "link": "https://www.jawavysocina.cz/impregnace-na-textil-oxford", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_107_image4.webp", "popis": "Sprej pro obnovu voděodolnosti motocyklového oblečení." },
+    "Motorový olej MOTUL": { "cena": "532 Kč", "link": "https://www.jawavysocina.cz/motorovy-olej-motul", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_109_ap8ybv9uhoarfhmogvio.webp", "popis": "Syntetický motorový olej pro vysoký výkon." },
+    "SADA NA ČIŠTĚNÍ ŘETĚZŮ": { "cena": "852 Kč", "link": "https://www.jawavysocina.cz/sada-na-cisteni-retezu", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_108_image5.webp", "popis": "Kompletní sada pro údržbu řetězu vašeho motocyklu." },
+    "Dokladové desky Jawa": { "cena": "974 Kč", "link": "https://www.jawavysocina.cz/dokladove-desky-jawa", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_63_IMG_0966.png", "popis": "Stylové desky pro uložení dokladů k motocyklu." },
+    "Vzduchový filtr Jawa Pérák indický": { "cena": "1 125 Kč", "link": "https://www.jawavysocina.cz/vzduchovy-filtr-jawa-perak-indicky", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_110_6921_3.webp", "popis": "Originální vzduchový filtr pro indický model Pérák." },
+    "Zadní kufr 30l": { "cena": "1 940 Kč", "link": "https://www.jawavysocina.cz/zadni-kufr-30l", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_56__vyr_317_rwcyruryw0mo9xaegkal.webp", "popis": "Zadní kufr s odrazkou o objemu 30l včetně plotny." },
+    "Přední maska OHC": { "cena": "2 490 Kč", "link": "https://www.jawavysocina.cz/predni-maska-ohc", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_59_jawa-650-ohc--1-predni-maska.jpg", "popis": "Designová maska světla pro model OHC." },
+    "Sada padacích rámů OHC": { "cena": "2 950 Kč", "link": "https://www.jawavysocina.cz/padaci-ram-sada-ohc", "fotka": "https://static.golemos.com/theme/default/v2.225.2/milano/images/dummy-image.jpg", "popis": "Ochranné rámy motoru pro model Jawa 350 OHC." },
+    "Zadní nosič OHC": { "cena": "2 990 Kč", "link": "https://www.jawavysocina.cz/zadni-nosic", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_57_JAWA-650-OHC-Sport-7.jpg", "popis": "Pevný ocelový nosič pro montáž horního kufru." },
+    "Zadní nosič 300 CL": { "cena": "3 300 Kč", "link": "https://www.jawavysocina.cz/zadni-nosic-300cl", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_15_nosic.png", "popis": "Nosič zavazadel pro modely řady 300 CL." },
+    "Padací rám": { "cena": "4 400 Kč", "link": "https://www.jawavysocina.cz/padaci-ram", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_13_IMG_20220825_074626533.jpg", "popis": "Univerzální ochranný rám pro zvýšení bezpečnosti." },
+    "Centrální stojan pro Jawa 350 OHC": { "cena": "4 400 Kč", "link": "https://www.jawavysocina.cz/centralni-stojan-pro-jawa-350-ohc", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_17_IMG_20221129_104147257.jpg", "popis": "Pomocník pro snadnou údržbu řetězu a stabilitu." },
+    "Sada bočních nosičů OHC": { "cena": "5 500 Kč", "link": "https://www.jawavysocina.cz/sada-bocnich-nosicu-ohc", "fotka": "https://static.golemos.com/theme/default/v2.225.2/milano/images/dummy-image.jpg", "popis": "Sada pro uchycení bočních brašen nebo kufrů." },
+    "Topcase kufr Jawa 500 Adventure": { "cena": "8 999 Kč", "link": "https://www.jawavysocina.cz/topcase-kufr-jawa-500-adventure", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_53_20230815_120336.jpg", "popis": "Hliníkový topcase (36l) vč. plotny pro Jawa 500." },
+    "Sada brašen a držáku Pérák": { "cena": "12 500 Kč", "link": "https://www.jawavysocina.cz/sada-brasen-a-drzaku-perak", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_12_brasna.png", "popis": "Stylové kožené brašny s montážní sadou na Péráka." },
+    "Sada brašen a držáků 300 CL": { "cena": "12 500 Kč", "link": "https://www.jawavysocina.cz/sada-brasen-a-drzaku-300cl", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_14_DSCF8616.webp", "popis": "Sada bočních zavazadel pro moderní kývačky." },
+    "Sada hliníkových kufrů Jawa 500 Adventure": { "cena": "23 630 Kč", "link": "https://www.jawavysocina.cz/sada-hlinikovych-kufru-jawa-500-adventure", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_11_6_43.jpg", "popis": "Kompletní hliníková sada pro náročné cestovatele." },
+    "Zámek kotouče": { "cena": "480 Kč", "link": "https://www.jawavysocina.cz/zamek-kotouce", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_91_cnkeope8pprj9yulvjnh.webp", "popis": "Bezpečnostní zámek na kotouč s alarmem." },
+    "Sada Oxford pro nafouknutí pneumatik": { "cena": "506 Kč", "link": "https://www.jawavysocina.cz/sada-oxford-pro-nafouknuti-pneumatik", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_93__vyr_106496_sada-2-bombicek-co2-s-adapterem-pro-dofouknuti-pneu-oxford_i287183.webp", "popis": "Sada bombiček CO2 pro rychlou opravu defektu." },
+    "Sada na nouzovou opravu pneumatik Oxford": { "cena": "714 Kč", "link": "https://www.jawavysocina.cz/sada-na-nouzovou-opravu-pneumatik-oxford", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_92_66625_2923883345.webp", "popis": "Knoty a nářadí pro opravu pneu na cestách." },
+    "Reflexní šle": { "cena": "874 Kč", "link": "https://www.jawavysocina.cz/reflexni-sle", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_90_cvzdmke5ie824a41jrkd.webp", "popis": "Vysoce viditelné šle pro zvýšení vaší bezpečnosti." },
+    "Tankvak OXFORD M1R": { "cena": "1 018 Kč", "link": "https://www.jawavysocina.cz/tankvak-oxford-m1r", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_89__vyr_300049_qtawj7mwtend8mggkqt0.webp", "popis": "Malý magnetický tankvak na nádrž motocyklu." },
+    "Interkom SMK Bluetooth, sada pro 1 přilbu": { "cena": "1 857 Kč", "link": "https://www.jawavysocina.cz/interkom-smk-bluetooth-sada-pro-1-prilbu", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_102_image3.webp", "popis": "Bluetooth komunikátor do helmy pro hovory a hudbu." },
+    "Tričko Jawa": { "cena": "469 Kč", "link": "https://www.jawavysocina.cz/tricko-jawa", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_40_11_male.jpg", "popis": "Bavlněné tričko s logem JAWA." },
+    "Mikina Jawa": { "cena": "649 Kč", "link": "https://www.jawavysocina.cz/mikina-jawa", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_41_11_male.jpg", "popis": "Pohodlná mikina pro fanoušky značky." },
+    "Pánské kožené moto rukavice CYBER GEAR MIDI, černé": { "cena": "990 Kč", "link": "https://www.jawavysocina.cz/panske-kozene-moto-rukavice-cyber-gear-midi-cerne", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_68_panske-kozene-moto-rukavice-cyber-gear-midi-cerne.webp", "popis": "Krátké kožené rukavice s chrániči kloubů." },
+    "Adrenaline Lynx PPE": { "cena": "1 590 Kč", "link": "https://www.jawavysocina.cz/adrenaline-lynx-ppe", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_45_qxaqau65qjajvpffkdzf.jpg", "popis": "Základní textilní bunda s certifikací." },
+    "Oxford RP-2": { "cena": "1 924 Kč", "link": "https://www.jawavysocina.cz/oxford-rp-2", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_46_FUcBU6ZqzjLXAZWE9h2euFCkzdU1321q.jpg", "popis": "Kožené sportovní rukavice s ventilací." },
+    "Cassida Oxygen JAWA OHC, šedá": { "cena": "2 650 Kč", "link": "https://www.jawavysocina.cz/cassida-oxygen-jawa-ohc-seda", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_18_prilba-oxygen-2-0-jawa-ohc-cassida-seda-matna-cervena-cerna-bila-2025_i649106.webp", "popis": "Limitovaná edice přilby Cassida v designu Jawa OHC." },
+    "SMK GULLWING": { "cena": "3 500 Kč", "link": "https://www.jawavysocina.cz/prilba-odklapeci-smk", "fotka": "https://www.jawavysocina.cz/fotky30885/fotos/_vyr_65_kj4xoj6jwwvckldcfh4w.webp", "popis": "Vyklápěcí přilba se sluneční clonou." }
+};
+
+// 5. LOGIKA VYHLEDÁVÁNÍ (Smart Match Fix)
+let selected = (typeof selected_product !== 'undefined' && selected_product) ? selected_product.trim() : "";
+
+function cleanName(str) {
+    if (!str) return "";
+    return str.replace(/\.\.\.$/, "").replace(/[.,\s]+$/, "").trim().toLowerCase();
+}
+
+let searchKey = cleanName(selected);
+let fullProductName = "";
+let upsellNames = [];
+
+if (produktyDB[selected]) {
+    fullProductName = selected;
+} else {
+    fullProductName = Object.keys(produktyDB).find(dbName => {
+        let dbNameClean = dbName.toLowerCase();
+        return searchKey.length > 5 && dbNameClean.includes(searchKey);
+    });
+}
+
+if (fullProductName && produktyDB[fullProductName]) {
+    upsellNames = produktyDB[fullProductName].upsell;
+}
+
+function findProduct(nameFragment) {
+    if (!nameFragment || nameFragment.length < 3) return null;
+    if (vsechnyProdukty[nameFragment]) return vsechnyProdukty[nameFragment];
+    let key = Object.keys(vsechnyProdukty).find(k => k.toLowerCase().includes(nameFragment.toLowerCase()) || nameFragment.toLowerCase().includes(k.toLowerCase()));
+    return key ? vsechnyProdukty[key] : null;
+}
+
+// 6. NAPLNĚNÍ CAROUSELU
+let foundCount = 0;
+let loopLimit = Math.min(10, upsellNames.length);
+
+for (let i = 0; i < loopLimit; i++) {
+    if (foundCount >= 6) break;
+    let upsellNazev = upsellNames[i].trim();
+    let produktData = findProduct(upsellNazev);
+
+    if (produktData) {
+        // Kontrola duplicity (pomocí URL)
+        if (c1_url === produktData.link || c2_url === produktData.link || c3_url === produktData.link) continue;
+
+        foundCount++;
+        let finalImg = produktData.fotka && produktData.fotka.length > 10
+            ? `https://wsrv.nl/?url=${encodeURIComponent(produktData.fotka)}&w=600&h=400&fit=cover`
+            : "https://placehold.co/600x400?text=" + encodeURIComponent(upsellNazev.slice(0, 10));
+
+        // NOVÝ FORMÁT POPISKU: 💰 Cena | Skladem | Zkrácený popis
+        let shortPopis = smartTruncate(produktData.popis, 60);
+        let finalDesc = `💰 ${produktData.cena} | Skladem | ${shortPopis}`;
+
+        if (foundCount === 1) { c1_title = upsellNazev; c1_desc = finalDesc; c1_img = finalImg; c1_url = produktData.link; }
+        if (foundCount === 2) { c2_title = upsellNazev; c2_desc = finalDesc; c2_img = finalImg; c2_url = produktData.link; }
+        if (foundCount === 3) { c3_title = upsellNazev; c3_desc = finalDesc; c3_img = finalImg; c3_url = produktData.link; }
+        if (foundCount === 4) { c4_title = upsellNazev; c4_desc = finalDesc; c4_img = finalImg; c4_url = produktData.link; }
+        if (foundCount === 5) { c5_title = upsellNazev; c5_desc = finalDesc; c5_img = finalImg; c5_url = produktData.link; }
+        if (foundCount === 6) { c6_title = upsellNazev; c6_desc = finalDesc; c6_img = finalImg; c6_url = produktData.link; }
+    }
+}
+
+valid_count = foundCount;
+search_mode = "upsell";
