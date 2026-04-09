@@ -1,0 +1,20 @@
+// Proměnné stav_objednavky a trackng už jsou naplněné z API bloku
+
+if (!stav_objednavky) {
+    // Objednávka nenalezena
+    found = false;
+    stav_objednavky = "Objednávka nenalezena";
+    trackng = "0";
+} else {
+    found = true;
+
+    // Tracking
+    if (!trackng || trackng === "" || trackng === null) {
+        trackng = "0";
+    } else {
+        // trackng obsahuje objekt se jménem dopravce a sledovacím číslem
+        let carrierName = trackng.name ?? "Dopravce";
+        let trackingNumber = trackng.trackingNumber ?? trackng.code ?? "–";
+        trackng = `${carrierName}, sledovací číslo je ${trackingNumber}`;
+    }
+}
