@@ -1,0 +1,195 @@
+// ==========================================
+// 0. KONFIGURACE (THRESHOLD A TRIM)
+// ==========================================
+const TITLE_TRIM_LENGTH = 47;
+const DESC_TRIM_LENGTH = 65;
+const MIN_SCORE_THRESHOLD = 0.75;
+
+// ==========================================
+// 1. NASTAVENÍ E-SHOPU
+// ==========================================
+const SHOP_NAME    = "jawavysocina.cz";
+const SHOP_PHONE   = "+420 777 123 456";
+const SHOP_ADDRESS = "Vaše adresa, Vysočina";
+
+// ==========================================
+// 2. BEZPEČNÉ NAČTENÍ DAT Z PINECONE
+// ==========================================
+let rawData = pinecone_raw;
+if (typeof rawData === 'string') {
+    try { rawData = JSON.parse(rawData); } catch (e) { rawData = {}; }
+}
+
+let matches = [];
+if (rawData && Array.isArray(rawData.matches)) {
+    matches = rawData.matches;
+} else if (rawData && rawData.response && Array.isArray(rawData.response.matches)) {
+    matches = rawData.response.matches;
+}
+
+let validCards = [];
+let usedIds = new Set();
+
+// ==========================================
+// 3. POMOCNÉ FUNKCE
+// ==========================================
+function removeAccents(str) {
+    if (!str) return "";
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+function smartTruncate(str, n) {
+    if (!str) return "";
+    let cleanStr = str.replace("Kompletní specifikace", "").replace(new RegExp("[\\r\\n]+", "g"), " ").trim();
+    return cleanStr.length <= n ? cleanStr : cleanStr.substring(0, n) + "...";
+}
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ==========================================
+// 4. ANALÝZA DOTAZU (zjištění záměru)
+// ==========================================
+const USER_QUERY = (typeof last_utterance !== 'undefined') ? last_utterance.toLowerCase() : "";
+const queryClean = removeAccents(USER_QUERY);
+
+const MOTO_IDENTIFIERS = ["motork", "motocykl", "stroj", "masin", "jaw"];
+const HELMET_WORDS    = ["helm", "prilb", "eso", "jet", "apex", "cooper", "oxygen", "cassida", "smk"];
+const MOTO_MODELS     = ["730", "350", "300", "42", "750", "634", "perak", "bobber", "geeny", "twin"];
+const NEWS_WORDS      = ["novink", "novy", "nove", "aktual", "predobjednavk", "rezervace"];
+const CLOTHING_WORDS  = ["tricko", "tric", "mikina", "bunda", "vest", "oblec", "kalhot", "rukavic", "ponozk", "cepic"];
+const DOPLNKY_WORDS   = ["brasn", "batoh", "kufr", "blatn", "zrcatk", "kryc", "doplnek", "doplnk", "prislusen", "olej", "retez", "zamek", "stojan", "gps", "interkom", "grip", "cisten"];
+
+const isMotoSearch    = MOTO_IDENTIFIERS.some(k => queryClean.includes(k));
+const isHelmetSearch  = HELMET_WORDS.some(k => queryClean.includes(k));
+const wantsNews       = NEWS_WORDS.some(k => queryClean.includes(k));
+const isClothingSearch = CLOTHING_WORDS.some(k => queryClean.includes(k));
+const isDoplnkySearch = DOPLNKY_WORDS.some(k => queryClean.includes(k));
+const modelInQuery    = MOTO_MODELS.find(m => queryClean.includes(m));
+
+// ==========================================
+// 5. CHYTRÁ SÉMANTICKÁ FILTRACE
+// ==========================================
+for (let i = 0; i < matches.length; i++) {
+    const item = matches[i];
+    const m = item.metadata;
+    if (!m || usedIds.has(item.id)) continue;
+
+    const name     = m.nazev || m.name || "";
+    const desc     = m.popis || m.description || "";
+    const avail    = m.dostupnost || m.availability || "";
+    const priceRaw = String(m.cena || m.price || "");
+    const category = removeAccents(m.kategorie || m.category || "");
+
+    const nameNorm  = removeAccents(name);
+    const availNorm = removeAccents(avail);
+    const priceNorm = removeAccents(priceRaw);
+
+    let isPreorder   = availNorm.includes("rezervace") || priceNorm.includes("predobjednavka");
+    let isNewProduct = isPreorder || nameNorm.includes("novink") || removeAccents(desc).includes("novink");
+
+    const CLOTHING_CATEGORIES  = ["tricko", "mikina", "rukavice", "bunda", "kalhoty", "obleceni"];
+    const ACCESSORY_CATEGORIES = ["doplnky", "oleje", "cisteni", "kufr", "stojany", "brasny"];
+
+    let isAllowedCategory = false;
+    if (isMotoSearch    && category === "motorka")                         isAllowedCategory = true;
+    if (isHelmetSearch  && (category === "helma" || category === "helmy")) isAllowedCategory = true;
+    if (isClothingSearch && CLOTHING_CATEGORIES.includes(category))        isAllowedCategory = true;
+    if (isDoplnkySearch && ACCESSORY_CATEGORIES.includes(category))        isAllowedCategory = true;
+    if (modelInQuery    && category === "motorka" && nameNorm.includes(modelInQuery)) isAllowedCategory = true;
+
+    const hasSpecificIntent = isMotoSearch || isHelmetSearch || isClothingSearch || isDoplnkySearch || modelInQuery;
+    if (hasSpecificIntent && !isAllowedCategory) continue;
+    if (wantsNews && !isNewProduct) continue;
+
+    let isOutOfStock = availNorm.includes("vyprodano") || (availNorm.includes("neni skladem") && !availNorm.includes("dodavatel"));
+    if (isOutOfStock && !isNewProduct) continue;
+
+    let totalScore = item.score;
+    if (totalScore < MIN_SCORE_THRESHOLD) continue;
+
+    let priceNum   = parseInt(priceNorm.replace(/[^0-9]/g, '')) || 0;
+    let cleanPrice = isPreorder ? "Předobjednávka" : (priceNum > 0 ? priceNum.toLocaleString() + " Kč" : "Na dotaz");
+    let finalTitle = name.length > (TITLE_TRIM_LENGTH + 3) ? name.substring(0, TITLE_TRIM_LENGTH) + "..." : name;
+
+    validCards.push({
+        title:     name,
+        chatTitle: finalTitle,
+        chatDesc:  `💰 ${cleanPrice} | ${isPreorder ? "Rezervace" : "Skladem"}\n${smartTruncate(desc, DESC_TRIM_LENGTH)}`,
+        image:     m.fotka || m.imageUrl || "https://placehold.co/600x400?text=JAWA",
+        url:       m.link || m.url || "#",
+        score:     totalScore,
+        price:     cleanPrice,       // pro email + context list
+        description: desc            // pro email + context list
+    });
+    usedIds.add(item.id);
+}
+
+// ==========================================
+// 6. ŘAZENÍ A EXPORT (Voiceflow karty)
+// ==========================================
+validCards.sort((a, b) => b.score - a.score);
+validCards = validCards.slice(0, 5);
+
+function getFinal(index) {
+    if (validCards[index]) return validCards[index];
+    return { chatTitle: "---", chatDesc: " ", image: "https://placehold.co/1x1", url: "#" };
+}
+
+const c1 = getFinal(0); c1_title = c1.chatTitle; c1_desc = c1.chatDesc; c1_img = c1.image; c1_url = c1.url;
+const c2 = getFinal(1); c2_title = c2.chatTitle; c2_desc = c2.chatDesc; c2_img = c2.image; c2_url = c2.url;
+const c3 = getFinal(2); c3_title = c3.chatTitle; c3_desc = c3.chatDesc; c3_img = c3.image; c3_url = c3.url;
+const c4 = getFinal(3); c4_title = c4.chatTitle; c4_desc = c4.chatDesc; c4_img = c4.image; c4_url = c4.url;
+const c5 = getFinal(4); c5_title = c5.chatTitle; c5_desc = c5.chatDesc; c5_img = c5.image; c5_url = c5.url;
+
+valid_count = validCards.length;
+
+// ==========================================
+// 7. E-MAIL HTML
+// ==========================================
+let htmlOutput = '<div style="font-family: Arial, sans-serif; max-width: 600px; color: #333;">';
+htmlOutput += `<h2 style="color: #000; border-bottom: 2px solid #D32F2F; padding-bottom: 10px;">${SHOP_NAME}: Váš výběr</h2>`;
+htmlOutput += '<p>Zde jsou produkty, které jsme společně vybrali:</p>';
+
+for (let item of validCards) {
+    let title = escapeHtml(item.title || "Produkt");
+    let desc  = escapeHtml(smartTruncate(item.description, 120) || "");
+    let link  = item.url;
+    let img   = item.image;
+    let price = escapeHtml(item.price || "");
+
+    htmlOutput += `
+    <div style="padding: 15px 0; border-bottom: 1px solid #eee;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+                <td width="120" valign="top">
+                    <img src="${img}" alt="Produkt" style="width: 100px; height: auto; border-radius: 8px; border: 1px solid #eee;">
+                </td>
+                <td valign="top" style="padding-left: 15px;">
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #000;">${title}</h3>
+                    <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: bold; color: #D32F2F;">💰 ${price}</p>
+                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;">${desc}</p>
+                    <a href="${link}" style="background-color: #D32F2F; color: #ffffff; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-size: 13px; display: inline-block;">Zobrazit v e-shopu</a>
+                </td>
+            </tr>
+        </table>
+    </div>`;
+}
+
+htmlOutput += `
+<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #888; text-align: center;">
+    <p><strong>${SHOP_NAME}</strong><br>
+    📍 ${SHOP_ADDRESS} | 📞 ${SHOP_PHONE}</p>
+    <p>Vygenerováno vaším AI asistentem 🤖</p>
+</div></div>`;
+
+email_html_content = JSON.stringify(htmlOutput);
+
+// ==========================================
+// 8. EXPORT PRO AI MOZEK
+// ==========================================
+context_products_list = validCards.map((item, index) => {
+    return `${index + 1}. ${item.title}\n   Cena: ${item.price}\n   Popis: ${smartTruncate(item.description, 200)}`;
+}).join("\n\n");
