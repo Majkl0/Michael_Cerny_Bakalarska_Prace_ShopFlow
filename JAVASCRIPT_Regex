@@ -1,0 +1,3 @@
+let raw_input = order_id;
+let clean_order_id = raw_input.replace(/\D/g, '');
+order_id = clean_order_id;
