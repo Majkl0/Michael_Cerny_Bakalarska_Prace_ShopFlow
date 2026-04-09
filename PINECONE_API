@@ -1,0 +1,13 @@
+//WEBHOOK URL
+https://{odkaz_na_databazi_cenzurovano}.pinecone.io/query
+//HEADER
+Content-Type = application/json
+Api-Key = {API_KEY_cenzurovano}
+//Capture response
+response = {pinecone_raw}
+//BODY: RAW, JSON
+{
+  "vector": {gemini_raw},
+  "topK": 5,
+  "includeMetadata": true
+}
