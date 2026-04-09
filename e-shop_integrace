@@ -1,0 +1,31 @@
+<script type="text/javascript">
+  (function(d, t) {
+    var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
+
+    v.onload = function() {
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+      window.voiceflow.chat.load({
+        verify: { projectID: '{cenzurovano}' },
+        url: 'https://general-runtime.voiceflow.com',
+        versionID: 'production',
+        voice: {
+          url: "https://runtime-api.voiceflow.com"
+        }
+      });
+
+      const hasOpenedInSession = sessionStorage.getItem('vf_chat_opened');
+
+      if (!isMobile && !hasOpenedInSession) {
+        setTimeout(() => {
+          window.voiceflow.chat.open();
+          sessionStorage.setItem('vf_chat_opened', 'true');
+        }, 1200);
+      }
+    };
+
+    v.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs";
+    v.type = "text/javascript";
+    s.parentNode.insertBefore(v, s);
+  })(document, 'script');
+</script>
